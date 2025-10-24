@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "catrineando-new",
-    "slug": "catrineando-new",
+    "name": "catrineando",
+    "slug": "catrineando",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "catrineandonew",
+    "scheme": "catrineando",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.jacarandalab.catrineando"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "aa298a43-8970-4ac1-9e64-b40c3bd71ad9"
+      }
     }
   }
 }
