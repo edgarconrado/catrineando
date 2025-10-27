@@ -4,7 +4,7 @@
     "slug": "catrineando",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/catrinenado_logo.svg",
     "scheme": "catrineando",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

@@ -1,0 +1,55 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F97316"/>
+      <stop offset="50%" style="stop-color:#EC4899"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <radialGradient id="skull">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#F3F4F6"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Fondo -->
+  <rect width="512" height="512" fill="url(#bg)" rx="90"/>
+  
+  <!-- Círculo decorativo -->
+  <circle cx="256" cy="256" r="210" fill="#FED7AA" opacity="0.2"/>
+  
+  <!-- Calavera -->
+  <ellipse cx="256" cy="240" rx="140" ry="150" fill="url(#skull)"/>
+  
+  <!-- Ojos -->
+  <ellipse cx="220" cy="220" rx="30" ry="40" fill="#1F2937"/>
+  <ellipse cx="292" cy="220" rx="30" ry="40" fill="#1F2937"/>
+  <ellipse cx="230" cy="215" rx="10" ry="12" fill="#FFFFFF" opacity="0.6"/>
+  <ellipse cx="302" cy="215" rx="10" ry="12" fill="#FFFFFF" opacity="0.6"/>
+  
+  <!-- Nariz -->
+  <path d="M 256 250 L 240 275 L 272 275 Z" fill="#1F2937"/>
+  
+  <!-- Sonrisa -->
+  <path d="M 200 290 Q 256 330 312 290" stroke="#1F2937" stroke-width="12" fill="none" stroke-linecap="round"/>
+  
+  <!-- Dientes -->
+  <rect x="220" y="285" width="15" height="25" fill="#1F2937" rx="3"/>
+  <rect x="245" y="295" width="15" height="22" fill="#1F2937" rx="3"/>
+  <rect x="270" y="295" width="15" height="22" fill="#1F2937" rx="3"/>
+  
+  <!-- Flores en la frente -->
+  <circle cx="256" cy="150" r="30" fill="#F97316"/>
+  <circle cx="220" cy="140" r="22" fill="#EC4899"/>
+  <circle cx="292" cy="140" r="22" fill="#8B5CF6"/>
+  
+  <!-- Sombrero -->
+  <rect x="196" cy="50" width="120" height="70" fill="#1F2937" rx="10"/>
+  <ellipse cx="256" cy="120" rx="80" ry="20" fill="#1F2937"/>
+  <rect x="196" y="110" width="120" height="15" fill="#F97316"/>
+  
+  <!-- Flores decorativas -->
+  <circle cx="80" cy="80" r="25" fill="#F59E0B" opacity="0.8"/>
+  <circle cx="432" cy="80" r="25" fill="#8B5CF6" opacity="0.8"/>
+  <circle cx="80" cy="432" r="25" fill="#EC4899" opacity="0.8"/>
+  <circle cx="432" cy="432" r="25" fill="#F97316" opacity="0.8"/>
+</svg>

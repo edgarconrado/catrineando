@@ -1,22 +1,19 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Animated,
   Easing,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useCharacters } from '../components/hooks/CharacterContext';
-
 
 export default function LoadingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { getCharacterById } = useCharacters();
-  
+
   // Obtener parámetros
   const characterId = params.characterId as string;
   const name = params.name as string;
