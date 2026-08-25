@@ -2,14 +2,20 @@
   "expo": {
     "name": "catrineando",
     "slug": "catrineando",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/catrinenado_logo.svg",
     "scheme": "catrineando",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Catrineando usa la cámara para tomar tu foto y convertirla en Catrín o Catrina.",
+        "NSPhotoLibraryUsageDescription": "Catrineando accede a tus fotos para que elijas una y la convirtamos en Catrín o Catrina.",
+        "NSPhotoLibraryAddUsageDescription": "Catrineando guarda tu catrina en tu galería."
+      },
+      "bundleIdentifier": "com.jacarandalab.catrineando"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,7 +45,23 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Catrineando usa la cámara para tomar tu foto y convertirla en Catrín o Catrina.",
+          "photosPermission": "Catrineando accede a tus fotos para que elijas una y la convirtamos en Catrín o Catrina."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Catrineando guarda tu catrina en tu galería.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

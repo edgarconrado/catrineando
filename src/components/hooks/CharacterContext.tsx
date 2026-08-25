@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Character } from "../../types";
 import { CharacterContextType } from '../interfaces/CharacterContextType ';
+import { borrarImagenGenerada } from '../../services/catrinaService';
 
 const CharacterContext = createContext<CharacterContextType | undefined>(undefined);
 
@@ -57,8 +58,29 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({ children }
     return newCharacter;
   };
 
+  // Actualizar un personaje existente (p. ej. cuando llega la imagen generada)
+  const updateCharacter = async (
+    id: string,
+    patch: Partial<Character>
+  ): Promise<void> => {
+    // Leemos de AsyncStorage y no del estado: updateCharacter suele llamarse
+    // desde otra pantalla justo despues de addCharacter, y asi evitamos
+    // trabajar con una copia vieja del arreglo.
+    const raw = await AsyncStorage.getItem('characters');
+    const list: Character[] = raw ? JSON.parse(raw) : characters;
+    const updatedCharacters = list.map(char =>
+      char.id === id ? { ...char, ...patch } : char
+    );
+    setCharacters(updatedCharacters);
+    await saveCharacters(updatedCharacters);
+  };
+
   // Eliminar un personaje
   const deleteCharacter = async (id: string): Promise<void> => {
+    // Si tenia imagen generada, la borramos del disco para no dejar basura.
+    const objetivo = characters.find(char => char.id === id);
+    await borrarImagenGenerada(objetivo?.imageUri);
+
     const updatedCharacters = characters.filter(char => char.id !== id);
     setCharacters(updatedCharacters);
     await saveCharacters(updatedCharacters);
@@ -66,6 +88,7 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({ children }
 
   // Eliminar todos los personajes
   const deleteAllCharacters = async (): Promise<void> => {
+    await Promise.all(characters.map(c => borrarImagenGenerada(c.imageUri)));
     setCharacters([]);
     await AsyncStorage.removeItem('characters');
   };
@@ -79,6 +102,7 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({ children }
     characters,
     loading,
     addCharacter,
+    updateCharacter,
     deleteCharacter,
     deleteAllCharacters,
     getCharacterById,

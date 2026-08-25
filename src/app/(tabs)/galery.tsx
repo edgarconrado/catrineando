@@ -126,6 +126,7 @@ export default function GaleryScreen() {
               name={item.name}
               gender={item.gender}
               imageIndex={(item as any).imageIndex || 0}
+              imageUri={item.imageUri}
               showName={false}
               size="small"
             />
@@ -142,6 +143,7 @@ export default function GaleryScreen() {
                   name: item.name,
                   gender: item.gender,
                   imageIndex: item.imageIndex?.toString() || '0',
+                  ...(item.imageUri ? { imageUri: item.imageUri } : {}),
                 }
               })}
             >

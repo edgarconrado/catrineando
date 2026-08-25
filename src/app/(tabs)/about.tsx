@@ -46,7 +46,7 @@ const openLink = async (url: string) => {
                 <Text style={styles.titleO}>o</Text>
               </Text>
             </View>
-            <Text style={styles.version}>Versión 1.0.0</Text>
+            <Text style={styles.version}>Versión 2.0.0</Text>
           </View>
 
           {/* Descripción */}

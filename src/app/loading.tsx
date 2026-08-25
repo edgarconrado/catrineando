@@ -1,23 +1,40 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Easing,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCharacters } from '../components/hooks/CharacterContext';
+import { generarCatrinaDesdeFoto } from '../services/catrinaService';
+
+const MENSAJES_IA = [
+  '✨ Mezclando colores tradicionales...',
+  '🎨 Pintando el maquillaje de calavera...',
+  '🌼 Bordando el cempasúchil...',
+  '💀 Ajustando el sombrero...',
+  '💫 Dándole personalidad...',
+];
+
+const MENSAJES_CLASICO = [
+  '✨ Mezclando colores tradicionales...',
+  '🎨 Agregando detalles únicos...',
+  '💫 Dándole personalidad...',
+];
 
 export default function LoadingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { updateCharacter } = useCharacters();
 
-  // Obtener parámetros
   const characterId = params.characterId as string;
   const name = params.name as string;
   const gender = params.gender as 'catrin' | 'catrina';
+  const imageIndex = (params.imageIndex as string) ?? '0';
+  const fotoUri = params.fotoUri as string | undefined;
+
+  const conIA = Boolean(fotoUri);
+  const mensajes = conIA ? MENSAJES_IA : MENSAJES_CLASICO;
+
+  const [mensajeIdx, setMensajeIdx] = useState(0);
 
   // Animaciones
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -25,8 +42,8 @@ export default function LoadingScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // --- Animaciones decorativas ------------------------------------------
   useEffect(() => {
-    // Animación de escala (pulso)
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
@@ -41,47 +58,96 @@ export default function LoadingScreen() {
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
-    // Animación de rotación
     Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
         duration: 2000,
         easing: Easing.linear,
         useNativeDriver: true,
-      })
+      }),
     ).start();
 
-    // Animación de fade in
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
     }).start();
 
-    // Animación de barra de progreso
+    // La barra llega al 90 % y ahí se queda: el último 10 % lo completa la
+    // respuesta real. Nada peor que una barra llena y la app esperando.
     Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 3000,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      toValue: 0.9,
+      duration: conIA ? 20000 : 2600,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: false,
     }).start();
 
-    // Simular tiempo de "generación" y navegar al resultado
-    const timer = setTimeout(() => {
-      router.replace({
-        pathname: '/result',
-        params: {
-          characterId,
-          name,
-          gender,
-        }
-      });
-    }, 3000);
+    const rotador = setInterval(
+      () => setMensajeIdx(v => (v + 1) % mensajes.length),
+      conIA ? 3500 : 1000,
+    );
+    return () => clearInterval(rotador);
+  }, []);
 
-    return () => clearTimeout(timer);
+  // --- Generación real ---------------------------------------------------
+  useEffect(() => {
+    let cancelado = false;
+
+    const terminar = (imageUri?: string) => {
+      if (cancelado) return;
+
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: false,
+      }).start(() => {
+        if (cancelado) return;
+        router.replace({
+          pathname: '/result',
+          params: {
+            characterId,
+            name,
+            gender,
+            imageIndex,
+            ...(imageUri ? { imageUri } : {}),
+          },
+        });
+      });
+    };
+
+    (async () => {
+      if (!conIA) {
+        // Flujo clásico: la espera es puro teatro, la dejamos corta.
+        setTimeout(() => terminar(), 3000);
+        return;
+      }
+
+      try {
+        const imageUri = await generarCatrinaDesdeFoto(fotoUri!, gender, name);
+        if (cancelado) return;
+        await updateCharacter(characterId, { imageUri });
+        terminar(imageUri);
+      } catch (e: any) {
+        // Fallback silencioso: la app nunca falla, solo cae al personaje clásico.
+        if (e?.context) {
+          try {
+            console.warn('STATUS:', e.context.status);
+            console.warn('BODY:', await e.context.text());
+          } catch {}
+        }
+        console.warn('Falló la generación con IA, uso imagen prediseñada:', e);
+        if (cancelado) return;
+        await updateCharacter(characterId, { fromPhoto: false });
+        terminar();
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   const spin = rotateAnim.interpolate({
@@ -105,12 +171,7 @@ export default function LoadingScreen() {
           <Animated.View
             style={[
               styles.iconContainer,
-              {
-                transform: [
-                  { scale: scaleAnim },
-                  { rotate: spin },
-                ],
-              },
+              { transform: [{ scale: scaleAnim }, { rotate: spin }] },
             ]}
           >
             <LinearGradient
@@ -124,20 +185,26 @@ export default function LoadingScreen() {
           </Animated.View>
 
           {/* Elementos decorativos flotantes */}
-          <View style={styles.floatingElements}>
+          <View style={styles.floatingElements} pointerEvents="none">
             <Animated.Text style={[styles.floatingEmoji, { opacity: fadeAnim }]}>
               🌺
             </Animated.Text>
-            <Animated.Text style={[styles.floatingEmoji, styles.floatingEmoji2, { opacity: fadeAnim }]}>
+            <Animated.Text
+              style={[styles.floatingEmoji, styles.floatingEmoji2, { opacity: fadeAnim }]}
+            >
               🌼
             </Animated.Text>
-            <Animated.Text style={[styles.floatingEmoji, styles.floatingEmoji3, { opacity: fadeAnim }]}>
+            <Animated.Text
+              style={[styles.floatingEmoji, styles.floatingEmoji3, { opacity: fadeAnim }]}
+            >
               🌺
             </Animated.Text>
           </View>
 
           {/* Textos */}
-          <Text style={styles.title}>Creando tu personaje...</Text>
+          <Text style={styles.title}>
+            {conIA ? 'Pintando tu catrina...' : 'Creando tu personaje...'}
+          </Text>
           <Text style={styles.subtitle}>
             Dándole vida a {name} {gender === 'catrin' ? 'el Catrín' : 'la Catrina'}
           </Text>
@@ -145,14 +212,7 @@ export default function LoadingScreen() {
           {/* Barra de progreso */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
-              <Animated.View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: progressWidth,
-                  },
-                ]}
-              >
+              <Animated.View style={[styles.progressFill, { width: progressWidth }]}>
                 <LinearGradient
                   colors={['#F97316', '#EC4899']}
                   start={{ x: 0, y: 0 }}
@@ -163,11 +223,14 @@ export default function LoadingScreen() {
             </View>
           </View>
 
-          {/* Mensajes motivacionales */}
+          {/* Mensaje rotativo */}
           <View style={styles.messagesContainer}>
-            <Text style={styles.message}>✨ Mezclando colores tradicionales...</Text>
-            <Text style={styles.message}>🎨 Agregando detalles únicos...</Text>
-            <Text style={styles.message}>💫 Dándole personalidad...</Text>
+            <Text style={styles.message}>{mensajes[mensajeIdx]}</Text>
+            {conIA && (
+              <Text style={styles.hint}>
+                Esto puede tardar unos segundos. No cierres la app.
+              </Text>
+            )}
           </View>
         </Animated.View>
       </SafeAreaView>
@@ -243,7 +306,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     width: '100%',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   progressBar: {
     width: '100%',
@@ -260,13 +323,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   messagesContainer: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     width: '100%',
     gap: 12,
+    minHeight: 60,
   },
   message: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#8B5CF6',
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  hint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
 });

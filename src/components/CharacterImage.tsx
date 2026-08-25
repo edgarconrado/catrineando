@@ -8,14 +8,18 @@ interface CharacterImageProps {
   name: string;
   gender: Gender;
   imageIndex: number;
+  imageUri?: string;              // catrina generada con IA (tiene prioridad)
   showName?: boolean;
   size?: 'small' | 'medium' | 'large';
 }
 
 
 const CharacterImage = forwardRef<View, CharacterImageProps>(
-  ({ name, gender, imageIndex, showName = true, size = 'large' }, ref) => {
-    const imageSource = getImageByIndex(gender, imageIndex);
+  ({ name, gender, imageIndex, imageUri, showName = true, size = 'large' }, ref) => {
+    // Si hay foto generada la usamos; si no, caemos a las prediseñadas.
+    const imageSource = imageUri
+      ? { uri: imageUri }
+      : getImageByIndex(gender, imageIndex);
     const containerSize = {
       small: 150,
       medium: 200,
@@ -40,7 +44,7 @@ const CharacterImage = forwardRef<View, CharacterImageProps>(
           <Image
             source={imageSource}
             style={styles.image}
-            resizeMode="contain"
+            resizeMode={imageUri ? 'cover' : 'contain'}
           />
           {showName && (
             <View style={styles.nameOverlay}>

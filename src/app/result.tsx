@@ -29,6 +29,7 @@ export default function ResultScreen() {
   const name = params.name as string;
   const gender = params.gender as 'catrin' | 'catrina';
   const imageIndex = parseInt(params.imageIndex as string) || 0;
+  const imageUriParam = params.imageUri as string | undefined;
   // Obtener personaje del contexto si es necesario
   const character = characterId ? getCharacterById(characterId) : null;
 
@@ -140,6 +141,9 @@ export default function ResultScreen() {
 
   const displayName = character?.name || name || 'Tu personaje';
   const displayGender = character?.gender || gender || 'catrin';
+  // La imagen generada puede venir por params (recien creada) o del context
+  // (al abrir un personaje viejo desde la galeria).
+  const displayImageUri = imageUriParam || character?.imageUri;
 
   return (
     <LinearGradient
@@ -191,6 +195,7 @@ export default function ResultScreen() {
                   name={displayName}
                   gender={displayGender}
                   imageIndex={imageIndex}
+                  imageUri={displayImageUri}
                   showName={true}
                   size="large"
                 />
@@ -199,6 +204,9 @@ export default function ResultScreen() {
                 <Text style={styles.characterType}>
                   {displayGender === 'catrin' ? 'El Catrín' : 'La Catrina'}
                 </Text>
+
+                {/* Marca de agua discreta: publicidad gratis al compartir */}
+                <Text style={styles.watermark}>Catrineando</Text>
 
                 {/* Elementos decorativos */}
                 <View style={styles.decorativeElements}>
@@ -321,6 +329,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
+  },
+  watermark: {
+    fontSize: 11,
+    color: '#C4B5FD',
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginTop: 4,
   },
   characterType: {
     fontSize: 16,
