@@ -45,3 +45,5 @@ app-example
 # Variables de entorno
 .env
 .env.local
+
+*.p8
