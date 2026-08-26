@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
+import { SinCreditosError } from './creditosService';
 import { Gender } from '../types';
 
 const MAX_LADO = 1024;
@@ -66,17 +67,20 @@ export async function generarCatrinaDesdeFoto(
   gender: Gender,
   name: string,
 ): Promise<string> {
-  
-  const { data: s } = await supabase.auth.getSession();
-  console.log('SESIÓN:', s.session?.user?.id ?? 'NINGUNA');
-
   const imageBase64 = await prepararImagen(fotoUri);
 
   const { data, error } = await supabase.functions.invoke('generar-catrina', {
     body: { imageBase64, mimeType: 'image/jpeg', gender, name },
   });
 
-  if (error) throw error;
+  if (error) {
+    // 402 = sin creditos. Es distinto a un fallo tecnico: no queremos fallback
+    // silencioso, queremos mandar al usuario a comprar.
+    const status = (error as any)?.context?.status;
+    if (status === 402) throw new SinCreditosError();
+    throw error;
+  }
+
   if (!data?.imageBase64) {
     throw new Error(data?.error ?? 'El generador no devolvió imagen');
   }

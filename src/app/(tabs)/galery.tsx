@@ -7,18 +7,19 @@ import {
   Alert,
   FlatList,
   ListRenderItem,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import CharacterImage from '../../components/CharacterImage';
 import { useCharacters } from '../../components/hooks/CharacterContext';
 import LoginSheet from '../../components/LoginSheet';
-import { tieneCuentaPermanente } from '../../services/authService';
+import { cerrarSesion, tieneCuentaPermanente } from '../../services/authService';
 import { Character } from '../../types';
+
 type GalleryItem = Character | { id: 'add-new' };
 
 // Mapa de refs para cada tarjeta
@@ -78,6 +79,8 @@ export default function GaleryScreen() {
       ]
     );
   };
+
+
 
   const handleShare = async (item: Character) => {
     try {
@@ -284,7 +287,17 @@ export default function GaleryScreen() {
               style={styles.deleteAllButton}
               onPress={handleDeleteAll}
             >
-              <Text style={styles.deleteAllText}>Eliminar todos</Text>
+              <Text style={styles.deleteAllText}>Eliminar todos!!</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={async () => {
+                await cerrarSesion();
+                setTieneCuenta(false);
+              }}
+              style={{ padding: 12 }}
+            >
+              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>Cerrar sesión</Text>
             </TouchableOpacity>
           </View>
         )}

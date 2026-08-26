@@ -130,16 +130,24 @@ export default function LoadingScreen() {
         if (cancelado) return;
         await updateCharacter(characterId, { imageUri });
         terminar(imageUri);
-      } catch (e: any) {
-        // Fallback silencioso: la app nunca falla, solo cae al personaje clásico.
-        if (e?.context) {
-          try {
-            console.warn('STATUS:', e.context.status);
-            console.warn('BODY:', await e.context.text());
-          } catch {}
-        }
-        console.warn('Falló la generación con IA, uso imagen prediseñada:', e);
+      } catch (e) {
         if (cancelado) return;
+
+        // Sin créditos NO es un fallo técnico: mandamos a comprar en vez de
+        // entregar un personaje clásico que el usuario no pidió.
+        // Comparamos por nombre y no con instanceof: con Fast Refresh pueden
+        // coexistir dos definiciones de la clase y el instanceof falla.
+        if ((e as any)?.name === 'SinCreditosError') {
+          await updateCharacter(characterId, { fromPhoto: false });
+          router.replace({
+            pathname: '/creditos',
+            params: { motivo: 'sin_creditos' },
+          });
+          return;
+        }
+
+        // Cualquier otro fallo sí cae al personaje clásico, sin molestar.
+        console.warn('Falló la generación con IA, uso imagen prediseñada:', e);
         await updateCharacter(characterId, { fromPhoto: false });
         terminar();
       }
