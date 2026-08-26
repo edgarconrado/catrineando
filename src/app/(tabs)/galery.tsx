@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -16,6 +16,8 @@ import {
 import { captureRef } from 'react-native-view-shot';
 import CharacterImage from '../../components/CharacterImage';
 import { useCharacters } from '../../components/hooks/CharacterContext';
+import LoginSheet from '../../components/LoginSheet';
+import { tieneCuentaPermanente } from '../../services/authService';
 import { Character } from '../../types';
 type GalleryItem = Character | { id: 'add-new' };
 
@@ -25,6 +27,14 @@ const cardRefs = new Map<string, React.RefObject<View>>();
 export default function GaleryScreen() {
   const router = useRouter();
   const { characters, deleteCharacter, deleteAllCharacters } = useCharacters();
+
+  // Login: el banner solo aparece mientras la sesion siga siendo anonima.
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [tieneCuenta, setTieneCuenta] = useState(true);
+
+  useEffect(() => {
+    tieneCuentaPermanente().then(setTieneCuenta).catch(() => setTieneCuenta(true));
+  }, []);
 
   console.log('GalleryScreen: Personajes actuales:', characters);
   console.log('GalleryScreen: Total:', characters.length);
@@ -54,7 +64,7 @@ export default function GaleryScreen() {
 
   const handleDeleteAll = (): void => {
     if (characters.length === 0) return;
-    
+
     Alert.alert(
       'Eliminar todos',
       '¿Estás seguro de eliminar todos los personajes?',
@@ -72,7 +82,7 @@ export default function GaleryScreen() {
   const handleShare = async (item: Character) => {
     try {
       const cardRef = getCardRef(item.id);
-      
+
       if (!cardRef.current) {
         Alert.alert('Error', 'No se pudo capturar la imagen');
         return;
@@ -88,7 +98,7 @@ export default function GaleryScreen() {
 
       // Verificar si Sharing está disponible
       const isAvailable = await Sharing.isAvailableAsync();
-      
+
       if (isAvailable) {
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
@@ -204,8 +214,8 @@ export default function GaleryScreen() {
     return renderAddCard();
   };
 
-  const data: GalleryItem[] = characters.length > 0 
-    ? [...characters, { id: 'add-new' }] 
+  const data: GalleryItem[] = characters.length > 0
+    ? [...characters, { id: 'add-new' }]
     : [];
 
   return (
@@ -229,6 +239,23 @@ export default function GaleryScreen() {
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+
+        {!tieneCuenta && (
+          <TouchableOpacity
+            style={styles.loginBanner}
+            onPress={() => setMostrarLogin(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
+            <View style={styles.loginBannerTexto}>
+              <Text style={styles.loginBannerTitulo}>Guarda tus catrinas</Text>
+              <Text style={styles.loginBannerSub}>
+                Crea tu cuenta para no perderlas
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
 
         {characters.length > 0 && (
           <View style={styles.counterContainer}>
@@ -261,12 +288,41 @@ export default function GaleryScreen() {
             </TouchableOpacity>
           </View>
         )}
+        <LoginSheet
+          visible={mostrarLogin}
+          onClose={() => setMostrarLogin(false)}
+          onSuccess={() => setTieneCuenta(true)}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  loginBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 12,
+  },
+  loginBannerTexto: {
+    flex: 1,
+  },
+  loginBannerTitulo: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  loginBannerSub: {
+    color: '#EDE9FE',
+    fontSize: 12,
+    marginTop: 2,
+  },
   container: {
     flex: 1,
   },
