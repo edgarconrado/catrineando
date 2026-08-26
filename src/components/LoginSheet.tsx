@@ -11,11 +11,10 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import {
   appleDisponible,
@@ -36,7 +35,9 @@ export default function LoginSheet({ visible, onClose, onSuccess, motivo }: Prop
   const [hayApple, setHayApple] = useState(false);
 
   useEffect(() => {
-    appleDisponible().then(setHayApple);
+    appleDisponible()
+      .then(setHayApple)
+      .catch(() => setHayApple(false));
   }, []);
 
   const manejar = async (proveedor: 'apple' | 'google') => {
