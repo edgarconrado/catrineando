@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "usesAppleSignIn": true,
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Catrineando usa la cámara para tomar tu foto y convertirla en Catrín o Catrina.",
@@ -33,6 +34,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.33078112886-2llcc8cq6kn0sk5s0j6k7i27jah9cfug"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -61,7 +69,8 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

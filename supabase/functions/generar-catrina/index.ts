@@ -14,8 +14,8 @@ const MODEL = Deno.env.get('GEMINI_IMAGE_MODEL') ?? 'gemini-3.1-flash-image';
 const ENDPOINT =
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const MAX_POR_DIA = Number(Deno.env.get('MAX_POR_DIA') ?? 5);
 const MAX_BYTES = 4 * 1024 * 1024; // la app manda ~200 KB; esto es el techo
+const ASPECT_RATIO = Deno.env.get('ASPECT_RATIO') ?? '3:4';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -23,17 +23,39 @@ const cors = {
 };
 
 function buildPrompt(gender: 'catrin' | 'catrina'): string {
-  const personaje =
+  const vestuario =
     gender === 'catrin'
-      ? 'un Catrín mexicano: traje elegante de tres piezas, moño o corbatín, sombrero de copa adornado con flores'
-      : 'una Catrina mexicana: vestido elegante de encaje, sombrero de ala ancha adornado con rosas y cempasúchil, velo de encaje';
+      ? 'un traje elegante de tres piezas oscuro con moño o corbatín, y un sombrero de copa adornado con flores'
+      : 'un vestido elegante de encaje con cuello alto, y un sombrero de ala ancha adornado con rosas y cempasúchil';
 
   return [
-    `Transforma a la persona de la foto en ${personaje}, al estilo del Día de Muertos mexicano.`,
-    'Aplica maquillaje artístico de calavera sobre su rostro: base blanca, cuencas de los ojos decoradas con pétalos y líneas negras, nariz sombreada en forma de corazón invertido, costuras estilizadas en las comisuras de la boca, telarañas finas y flores de colores en la frente y las mejillas.',
-    'MUY IMPORTANTE: conserva la identidad de la persona. Mismos rasgos faciales, misma forma de rostro, mismo peinado, mismo tono de piel. Es maquillaje pintado sobre su cara real, NO otra persona y NO un cráneo.',
-    'Retrato de medio cuerpo, iluminación cálida de vela, fondo desenfocado con cempasúchil y papel picado. Paleta naranja, morado, turquesa y dorado.',
-    'Estilo: ilustración digital pintada a mano, festiva y colorida, celebratoria. Sin texto, sin marcas de agua, sin sangre ni terror.',
+    // 1. La instrucción es EDITAR, no crear. Esto es lo que preserva la identidad.
+    'Edita esta fotografía aplicando maquillaje de calavera de Día de Muertos sobre el rostro de la persona y añadiendo vestuario de catrina.',
+
+    // 2. Maquillaje PARCIAL: la base blanca completa borra las señales por las
+    //    que reconocemos una cara (tono de piel, sombras, textura). Dejar piel
+    //    visible es lo que mas ayuda al parecido.
+    'Maquillaje LIGERO y PARCIAL, estilo maquillaje artístico real, no cobertura total.',
+    'Aplica: delineado negro alrededor de los ojos con pétalos pequeños en el borde exterior, una línea fina de costuras solo en las comisuras de la boca, y algunas flores pequeñas de colores en una sien y sobre una ceja.',
+    'IMPORTANTE — deja la mayor parte del rostro SIN pintar: el tono de piel natural debe verse en las mejillas, la frente, la nariz y el mentón. NO apliques base blanca cubriendo toda la cara. NO pintes la nariz de negro. La piel real de la persona debe seguir siendo lo dominante en el rostro.',
+
+    // 3. Vestuario.
+    `Añade ${vestuario}.`,
+
+    // 4. Lo crítico: es una EDICIÓN de la foto, no una reinterpretación.
+    'CRÍTICO — conserva exactamente: la misma persona, los mismos rasgos faciales, la misma forma de rostro y de nariz, los mismos ojos, la misma estructura ósea, el mismo peinado y el mismo tono de piel debajo del maquillaje. El maquillaje es una capa PINTADA ENCIMA de su cara real. No cambies la cara. No la hagas más joven, más delgada, más simétrica ni más atractiva. Si la persona tiene arrugas, lunares, cicatrices, ojeras o rasgos asimétricos, CONSÉRVALOS: son parte de su identidad.',
+
+    // 5. Sin reencuadre: reencuadrar obliga al modelo a redibujar la cara.
+    'Conserva el mismo encuadre, el mismo ángulo de cabeza y la misma pose de la fotografía original. No recortes, no acerques ni alejes, no cambies la posición de la persona.',
+
+    // 6. Fotorrealista, NO ilustración. Estilizar destruye el parecido.
+    'El resultado debe ser FOTORREALISTA: la misma fotografía con maquillaje y vestuario reales. Conserva la textura de la piel, la iluminación original y la nitidez fotográfica. NO conviertas a ilustración, pintura, caricatura, 3D ni arte digital.',
+
+    // 7. Fondo: se puede tocar sin riesgo para la identidad.
+    'Puedes reemplazar el fondo por uno cálido y desenfocado con cempasúchil y papel picado en tonos naranja y morado.',
+
+    // 8. Límites.
+    'Sin texto ni marcas de agua. Sin sangre, sin heridas, sin terror. Resultado festivo y celebratorio.',
   ].join(' ');
 }
 
@@ -64,17 +86,24 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (!user) return json({ error: 'No autorizado' }, 401);
 
-    const hoy = new Date().toISOString().slice(0, 10);
-    const { count } = await supabase
-      .from('generaciones')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', `${hoy}T00:00:00Z`);
+    // --- Cobro del crédito ----------------------------------------------
+    // Se descuenta ANTES de llamar al generador. Si el generador falla, se
+    // devuelve más abajo. Al revés (cobrar después) permitiría generar gratis
+    // matando la app a media petición.
+    const { data: cobrado, error: errCobro } = await supabase.rpc(
+      'consumir_credito',
+      { p_user: user.id },
+    );
 
-    if ((count ?? 0) >= MAX_POR_DIA) {
+    if (errCobro) {
+      console.error('Error al consumir crédito:', errCobro);
+      return json({ error: 'Error interno', fallback: true }, 500);
+    }
+
+    if (!cobrado) {
       return json(
-        { error: `Ya usaste tus ${MAX_POR_DIA} catrinas de hoy 💀 Vuelve mañana.` },
-        429,
+        { error: 'Te quedaste sin créditos 💀', code: 'SIN_CREDITOS' },
+        402, // Payment Required
       );
     }
 
@@ -101,15 +130,28 @@ Deno.serve(async (req) => {
               ],
             },
           ],
-          generationConfig: { responseModalities: ['IMAGE'] },
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            // temperature baja = menos "creatividad" = mas fidelidad al original.
+            temperature: Number(Deno.env.get('IMAGE_TEMPERATURE') ?? 0.4),
+            // Fijar el aspect ratio al del recorte de la app (3:4) evita que el
+            // modelo reencuadre, que es la principal causa de perder el parecido.
+            // Si tu modelo no soporta imageConfig, deja ASPECT_RATIO vacio.
+            ...(ASPECT_RATIO ? { imageConfig: { aspectRatio: ASPECT_RATIO } } : {}),
+          },
         }),
       });
+    } catch (errRed) {
+      console.error('Fallo de red hacia el proveedor:', errRed);
+      await devolver(supabase, user.id);
+      return json({ error: 'El generador no respondió', fallback: true }, 502);
     } finally {
       clearTimeout(timeout);
     }
 
     if (!res.ok) {
       console.error('Proveedor respondió', res.status, await res.text());
+      await devolver(supabase, user.id);
       return json({ error: 'El generador no respondió', fallback: true }, 502);
     }
 
@@ -121,18 +163,35 @@ Deno.serve(async (req) => {
     if (!b64) {
       // El modelo puede negarse: rostro de menor, contenido bloqueado, etc.
       console.warn('Sin imagen en la respuesta:', JSON.stringify(data).slice(0, 500));
+      await devolver(supabase, user.id);
       return json({ error: 'No se pudo generar la imagen', fallback: true }, 422);
     }
 
     // Registramos SOLO el consumo. Ni la foto ni el resultado se guardan.
     await supabase.from('generaciones').insert({ user_id: user.id, gender });
 
-    return json({ imageBase64: b64, mimeType: 'image/png' });
+    const { data: fila } = await supabase
+      .from('creditos')
+      .select('saldo')
+      .eq('user_id', user.id)
+      .single();
+
+    return json({
+      imageBase64: b64,
+      mimeType: 'image/png',
+      creditosRestantes: fila?.saldo ?? 0,
+    });
   } catch (e) {
     console.error('Error interno:', e);
     return json({ error: 'Error interno', fallback: true }, 500);
   }
 });
+
+/** Devuelve el crédito cobrado cuando la generación no se completó. */
+async function devolver(supabase: any, userId: string) {
+  const { error } = await supabase.rpc('devolver_credito', { p_user: userId });
+  if (error) console.error('No se pudo devolver el crédito:', error, userId);
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
