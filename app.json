@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Catrineando usa la cámara para tomar tu foto y convertirla en Catrín o Catrina.",
         "NSPhotoLibraryUsageDescription": "Catrineando accede a tus fotos para que elijas una y la convirtamos en Catrín o Catrina.",
-        "NSPhotoLibraryAddUsageDescription": "Catrineando guarda tu catrina en tu galería."
+        "NSPhotoLibraryAddUsageDescription": "Catrineando guarda tu catrina en tu galería.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.jacarandalab.catrineando"
     },
@@ -27,7 +28,16 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.jacarandalab.catrineando"
+      "package": "com.jacarandalab.catrineando",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -70,7 +80,7 @@
       ],
       "expo-font",
       "expo-web-browser"
-        ],
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
